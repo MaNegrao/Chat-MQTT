@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <stdio_ext.h>
 #include <MQTTClient.h>
 
 #define ADDRESS     "tcp://localhost:1883" 
@@ -13,4 +14,4 @@ char PAYLOAD[256];
 char USER_ID[4];
 char USER_TOPIC[10];
 
-pthread_mutex_t online_users_mutex;
+FILE *online_users_file;

@@ -1,35 +1,84 @@
 #include "./chat-mqtt.h"
 
 void menu(){
-    printf("-- Escolha uma oção --");
+    printf("-- Escolha uma oção --\n");
     printf("1. Enviar mensagem para um usuario\n");
     printf("2. Enviar mensagem em um grupo \n");
-	printf("3. Want to join Group \n");
-	printf("4. Want to send Group message \n");
-	printf("5. Want to leave Group \n");
-	printf("6. Quit Application \n");
+	printf("3. Logout \n");
 }
 
-int main(){
+void logout(){
+    char user[4];
+    int i;
 
-    FILE *users_file;
-    char user_in_file[4];    
+    online_users_file = fopen("online-users.txt", "r+");
+
+    flockfile(online_users_file);
+
+    rewind(online_users_file);
+
+    while(fgets(user, 4, online_users_file)){
+        if(!strcmp(user, USER_ID))
+            fputs(user, online_users_file);
+    }
+
+    funlockfile(online_users_file);
+    fclose(online_users_file);
+}
+
+void *main(){
+
+    char user_in_file[4];
+    int sel;    
 
     printf("Digite seu ID único:\n");
+    __fpurge(stdin);
     fgets(USER_ID, sizeof(USER_ID), stdin);
 
-    pthread_mutex_lock(&online_users_mutex);
-    users_file = fopen("online-users.txt", "a+");
+    
+    online_users_file = fopen("online-users.txt", "a+");
 
-    while(fgets(user_in_file, 4, users_file)){
-        printf("%s", user_in_file);
+    flockfile(online_users_file);
+
+    while(fgets(user_in_file, 4, online_users_file)){
+        if(!strcmp(user_in_file, USER_ID)){
+            printf("Você já está online!\n");
+            exit(0);
+        }
     }
+
+    fputs(USER_ID, online_users_file);
+
+    funlockfile(online_users_file);
+    fclose(online_users_file);
+
+    system("clear");
+    printf("Bem-vindo! Agora você está online!\n");
+    menu();
+
+    scanf("%d", &sel);
+
+    do
+    {
+        switch (sel)
+        {
+        case 1:
+            break;
+        
+        case 2:
+            break;
+
+        case 3:
+            logout();
+            break;
+
+        default:
+            printf("Opção não suportada!\n");
+            break;
+        }
+    } while (sel != 3);
     
 
-  
-
-    printf("%s", USER_ID);
-
-    pthread_mutex_unlock(&online_users_mutex);
+    
 }
 
