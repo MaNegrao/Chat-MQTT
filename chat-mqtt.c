@@ -13,19 +13,23 @@ void menu(){
 int main(){
 
     FILE *users_file;
-    char user_in_file[64];    
+    char user_in_file[4];    
 
     printf("Digite seu ID único:\n");
     fgets(USER_ID, sizeof(USER_ID), stdin);
 
+    pthread_mutex_lock(&online_users_mutex);
+    users_file = fopen("online-users.txt", "a+");
 
-    // fpurge();
-    pthread_mutex_trylock(online_users_mutex);
-    users_file = fopen("online_users.txt", "a+");
-        while(fgets(user_in_file, sizeof(user_in_file), users_file)){
-            printf("%s\n", user_in_file);
-        }
+    while(fgets(user_in_file, 4, users_file)){
+        printf("%s", user_in_file);
+    }
+    
 
-    pthread_mutex_unlock(online_users_mutex);
+  
+
+    printf("%s", USER_ID);
+
+    pthread_mutex_unlock(&online_users_mutex);
 }
 
