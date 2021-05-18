@@ -9,21 +9,21 @@ void menu(){
 
 void logout(){
     char user[4];
-    int i;
 
     online_users_file = fopen("online-users.txt", "r+");
 
     flockfile(online_users_file);
 
-    rewind(online_users_file);
-
     while(fgets(user, 4, online_users_file)){
-        if(!strcmp(user, USER_ID))
-            fputs(user, online_users_file);
+        if(!strcmp(user, USER_ID)){
+            fseek(online_users_file, -3, SEEK_CUR);
+            fprintf(online_users_file, "X");
+        }
     }
 
     funlockfile(online_users_file);
     fclose(online_users_file);
+
 }
 
 void *main(){
@@ -53,7 +53,7 @@ void *main(){
     fclose(online_users_file);
 
     system("clear");
-    printf("Bem-vindo! Agora você está online!\n");
+    printf("Bem-vindo! Agora você está online!\n\n");
     menu();
 
     scanf("%d", &sel);
