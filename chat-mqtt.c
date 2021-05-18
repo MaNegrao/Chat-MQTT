@@ -10,6 +10,7 @@ void menu(){
 void logout(){
     char user[4];
 
+
     online_users_file = fopen("online-users.txt", "r+");
 
     flockfile(online_users_file);
@@ -54,27 +55,27 @@ void *main(){
 
     system("clear");
     printf("Bem-vindo! Agora você está online!\n\n");
-    menu();
-
-    scanf("%d", &sel);
+    
 
     do
     {
-        switch (sel)
-        {
-        case 1:
-            break;
+        menu();
+        scanf("%d", &sel);
         
-        case 2:
-            break;
+        switch (sel){
+            case 1:
+                break;
+            
+            case 2:
+                break;
 
-        case 3:
-            logout();
-            break;
+            case 3:
+                logout();
+                break;
 
-        default:
-            printf("Opção não suportada!\n");
-            break;
+            default:
+                printf("Opção não suportada!\n");
+                break;
         }
     } while (sel != 3);
     
