@@ -5,7 +5,7 @@ void menu(){
     printf("1. Iniciar um chat com um usuario\n");
     printf("2. Entrar em um grupo \n");
     printf("3. Enviar mensagem em um grupo \n");
-	printf("0. Logout \n");
+	printf("4. Logout \n");
 }
 
 void logout(){
@@ -42,15 +42,55 @@ int ver_usr(char * usr_cmp){
     funlockfile(online_users_file);
     fclose(online_users_file);
 
-    if(!flag)
+    if(flag)
         return 1;
+    else
+        return 0;
 }
 
-int msg_arrvd(void *context, char *topicName, int topicLen, MQTTClient_message *message){
-    printf("     topic: %s\n", topicName);
-    printf("   message: %.*s\n", message->payloadlen, (char*)message->payload);
+void *req_conn(){
+        char sel[5];
+        
+        printf("Solicitação de conversa recebida! Deseja aceitar? (sim\\nao)");
+        fflush(stdout);
+        pthread_mutex_lock(&scan_mutex);            
+            fgets(sel, sizeof(sel), stdin);  
+        pthread_mutex_unlock(&scan_mutex);
+
+        if(!strcmp(sel, "sim\n") || !strcmp(sel, "SIM\n")){
+            return (void *) 1;
+        }
+        else{
+            return (void *) 0;
+        }   
+
+}
+
+void *new_conn(){
+    
+}
+
+int msg_arrvd(void *context, char *topic_name, int topic_len, MQTTClient_message *message){
+    void ** select;
+
+    if(!strcmp(topic_name, USER_TOPIC_CONTROL)){
+        if(!strcmp(message->payload, "conn_req")){
+
+            pthread_create(&req_conn_thread,NULL,req_conn,NULL);
+
+            pthread_join(req_conn_thread, select);
+
+            if(select){
+                new_conn(&topic_name);
+            } 
+        }   
+
+    }
+
+    // printf("     topic: %s\n", topic_name);
+    // printf("   message: %.*s\n", message->payloadlen, (char*)message->payload);
     MQTTClient_freeMessage(&message);
-    MQTTClient_free(topicName);
+    MQTTClient_free(topic_name);
     return 1;
 }
 
@@ -77,13 +117,13 @@ int pub_msg(MQTTClient client, char * topic, char * payload){
 
 void ini_chat(MQTTClient m_client){
 
-    char rec_id[4], rec_topic[12];
+    char rec_id[4], rec_topic[12] = "";
 
     printf("Qual ID do usuario que você deseja mandar mensagem?\n");
     
     __fpurge(stdin);
     fgets(rec_id, sizeof(rec_id), stdin);
-    
+
     if(ver_usr(rec_id)){
         printf("O usuario não está online\n");
         return;
@@ -91,19 +131,14 @@ void ini_chat(MQTTClient m_client){
     else{
         strncat(rec_topic, rec_id, 2);
         strcat(rec_topic, "_Control");
+        //printf("%s", rec_topic);
     }
     
     printf("Requisitando inicio de sessão...\n");
 
-    pub_msg(m_client, rec_topic, "sol_connect");
+    pub_msg(m_client, rec_topic, "conn_req");
 
 }
-
-// void delivered(void *context, MQTTClient_deliveryToken dt)
-// {
-//     printf("Message with token value %d delivery confirmed\n", dt);
-//     deliveredtoken = dt;
-// }
 
 void *main(){
 
@@ -137,8 +172,8 @@ void *main(){
     strncat(USER_TOPIC_CLIENT, USER_ID, 2);
     strcat(USER_TOPIC_CLIENT, "_Client");
 
-    MQTTClient client_mqtt;
     MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+
 
     if((rc = MQTTClient_create(&client_mqtt, ADDRESS, USER_TOPIC_CONTROL, 
     MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS){
@@ -173,18 +208,21 @@ void *main(){
         exit(0);
     }
 
-    system("clear");
+    //system("clear");
     printf("Bem-vindo! Agora você está online!\n\n");
 
     do
     {
+        pthread_mutex_lock(&scan_mutex);
         menu();
         scanf("%d", &sel);
+        pthread_mutex_unlock(&scan_mutex);
         
+
+
         switch (sel){
             case 1:
                 ini_chat(client_mqtt);
-                break;
             
             case 2:
                 break;
@@ -192,16 +230,15 @@ void *main(){
             case 3:
                 break;
 
-            case 0:
+            case 4:
                 logout();
                 MQTTClient_destroy(&client_mqtt);
                 break;
 
             default:
-                printf("Opção não suportada!\n");
                 break;
         }
-    } while (sel != 3);
+    } while (sel != 4);
     
 
     

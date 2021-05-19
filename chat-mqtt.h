@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio_ext.h>
 #include <pthread.h>
+#include <unistd.h>
 #include <MQTTClient.h>
 
 #define ADDRESS     "tcp://localhost:1883" 
@@ -20,4 +21,11 @@ char USER_ID[4];
 char USER_TOPIC_CONTROL[12];
 char USER_TOPIC_CLIENT[12];
 
+int session_id;
+
 FILE *online_users_file;
+
+pthread_mutex_t scan_mutex;
+pthread_t req_conn_thread;
+
+MQTTClient client_mqtt;
