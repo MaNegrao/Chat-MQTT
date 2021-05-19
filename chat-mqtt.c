@@ -10,7 +10,6 @@ void menu(){
 void logout(){
     char user[4];
 
-
     online_users_file = fopen("online-users.txt", "r+");
 
     flockfile(online_users_file);
@@ -18,7 +17,7 @@ void logout(){
     while(fgets(user, 4, online_users_file)){
         if(!strcmp(user, USER_ID)){
             fseek(online_users_file, -3, SEEK_CUR);
-            fprintf(online_users_file, "X");
+            fprintf(online_users_file, "XX");
         }
     }
 
@@ -27,15 +26,24 @@ void logout(){
 
 }
 
+void ini_chat(){
+
+    
+
+    //MQTTClient_subscribe(client_mqtt, USER_TOPIC, QOS);
+
+}
+
 void *main(){
 
+    MQTTClient client_mqtt;
     char user_in_file[4];
     int sel;    
 
     printf("Digite seu ID único:\n");
+    
     __fpurge(stdin);
     fgets(USER_ID, sizeof(USER_ID), stdin);
-
     
     online_users_file = fopen("online-users.txt", "a+");
 
@@ -53,9 +61,19 @@ void *main(){
     funlockfile(online_users_file);
     fclose(online_users_file);
 
+    strncat(USER_TOPIC, USER_ID, 2);
+
+    strcat(USER_TOPIC, "_Control");
+
+
+    MQTTClient_create(client_mqtt, ADDRESS, USER_ID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+    MQTTClient_connectOptions connect_options = MQTTClient_connectOptions_initializer;
+   
+    MQTTClient_connect(client_mqtt, &connect_options);
+
+
     system("clear");
     printf("Bem-vindo! Agora você está online!\n\n");
-    
 
     do
     {
@@ -64,6 +82,7 @@ void *main(){
         
         switch (sel){
             case 1:
+                ini_chat();
                 break;
             
             case 2:
