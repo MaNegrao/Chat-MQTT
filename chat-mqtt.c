@@ -7,6 +7,19 @@ void menu(){
 	printf("3. Logout \n");
 }
 
+int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *message)
+{
+    printf("Message arrived\n");
+    printf("     topic: %s\n", topicName);
+    printf("   message: %.*s\n", message->payloadlen, (char*)message->payload);
+    MQTTClient_freeMessage(&message);
+    MQTTClient_free(topicName);
+    return 1;
+}
+
+void connlost(void *context, char *cause)
+    printf("\nConexão perdida. Erro: %s\n", cause);
+
 void logout(){
     char user[4];
 
@@ -28,17 +41,19 @@ void logout(){
 
 void ini_chat(){
 
-    
-
-    //MQTTClient_subscribe(client_mqtt, USER_TOPIC, QOS);
 
 }
 
+// void delivered(void *context, MQTTClient_deliveryToken dt)
+// {
+//     printf("Message with token value %d delivery confirmed\n", dt);
+//     deliveredtoken = dt;
+// }
+
 void *main(){
 
-    MQTTClient client_mqtt;
     char user_in_file[4];
-    int sel;    
+    int sel, rc;    
 
     printf("Digite seu ID único:\n");
     
@@ -61,16 +76,38 @@ void *main(){
     funlockfile(online_users_file);
     fclose(online_users_file);
 
-    strncat(USER_TOPIC, USER_ID, 2);
+    strncat(USER_TOPIC_CONTROL, USER_ID, 2);
+    strcat(USER_TOPIC_CONTROL, "_Control");
 
-    strcat(USER_TOPIC, "_Control");
+    MQTTClient client_mqtt;
+    MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 
+    if((rc = MQTTClient_create(&client_mqtt, ADDRESS, USER_TOPIC_CONTROL, 
+    MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS){
+        printf("Falha na criação do tópico do cliente. Erro: %d\n", rc);
+        exit(0);
+    }
+    
+    //conn_opts.keepAliveInterval = 20;
+    //conn_opts.cleansession = 1;
+    
+    if((rc = MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered)) != MQTTCLIENT_SUCCESS){
+        printf("Erro ao setar os callbacks. Erro: %d\n", rc);
+        MQTTClient_destroy(&client_mqtt);
+        exit(0);
+    }
 
-    MQTTClient_create(client_mqtt, ADDRESS, USER_ID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
-    MQTTClient_connectOptions connect_options = MQTTClient_connectOptions_initializer;
-   
-    MQTTClient_connect(client_mqtt, &connect_options);
+    if((rc = MQTTClient_connect(client_mqtt, &conn_opts)) != MQTTCLIENT_SUCCESS){
+        printf("Conexão com o broker falhou. Erro: %d\n", rc);
+        MQTTClient_destroy(&client_mqtt);
+        exit(0);
+    }
 
+    if((rc = MQTTClient_subscribe(client_mqtt, USER_TOPIC_CONTROL, QOS)) != MQTTCLIENT_SUCCESS){
+    	printf("Falha ao assinar o tópico, Erro: %d\n", rc);
+        MQTTClient_destroy(&client_mqtt);
+        exit(0);
+    }
 
     system("clear");
     printf("Bem-vindo! Agora você está online!\n\n");
@@ -90,6 +127,7 @@ void *main(){
 
             case 3:
                 logout();
+                MQTTClient_destroy(&client_mqtt);
                 break;
 
             default:
