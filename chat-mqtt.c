@@ -27,6 +27,25 @@ void logout(){
 
 }
 
+int ver_usr(char * usr_cmp){
+    char user_in_file[4];
+    int flag = 1;
+
+    online_users_file = fopen("online-users.txt", "r");
+
+    flockfile(online_users_file);
+
+    while(fgets(user_in_file, 4, online_users_file))
+        if(!strcmp(user_in_file, usr_cmp))
+            flag = 0;
+
+    funlockfile(online_users_file);
+    fclose(online_users_file);
+
+    if(!flag)
+        return 1;
+}
+
 int msg_arrvd(void *context, char *topicName, int topicLen, MQTTClient_message *message){
     printf("     topic: %s\n", topicName);
     printf("   message: %.*s\n", message->payloadlen, (char*)message->payload);
@@ -39,8 +58,8 @@ void conn_lost(void *context, char *cause){
     printf("\nConexão perdida. Erro: %s\n", cause);
 }
 
-int pub_msg(MQTTClient client, char * topic){
-    char payload[140];
+int pub_msg(MQTTClient client, char * topic, char * payload){
+    int rc;
 
     MQTTClient_message message = MQTTClient_message_initializer;
 
@@ -50,14 +69,33 @@ int pub_msg(MQTTClient client, char * topic){
 
     if((rc = MQTTClient_publishMessage(client, topic, &message, NULL)) != MQTTCLIENT_SUCCESS){
         printf("Failed to publish message, return code %d\n", rc);
-        MQTTClient_destroy(&client_mqtt);
+        MQTTClient_destroy(&client);
         exit(0);
     }
 
 }
 
-void ini_chat(){
+void ini_chat(MQTTClient m_client){
 
+    char rec_id[4], rec_topic[12];
+
+    printf("Qual ID do usuario que você deseja mandar mensagem?\n");
+    
+    __fpurge(stdin);
+    fgets(rec_id, sizeof(rec_id), stdin);
+    
+    if(ver_usr(rec_id)){
+        printf("O usuario não está online\n");
+        return;
+    }
+    else{
+        strncat(rec_topic, rec_id, 2);
+        strcat(rec_topic, "_Control");
+    }
+    
+    printf("Requisitando inicio de sessão...\n");
+
+    pub_msg(m_client, rec_topic, "sol_connect");
 
 }
 
@@ -145,7 +183,7 @@ void *main(){
         
         switch (sel){
             case 1:
-                ini_chat();
+                ini_chat(client_mqtt);
                 break;
             
             case 2:

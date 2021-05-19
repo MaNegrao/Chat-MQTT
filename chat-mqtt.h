@@ -17,7 +17,6 @@
 #define GP5_TOPIC_ID "Coding_Lovers"
 
 char USER_ID[4];
-char REC_ID[4];
 char USER_TOPIC_CONTROL[12];
 char USER_TOPIC_CLIENT[12];
 
