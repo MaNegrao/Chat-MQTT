@@ -24,7 +24,7 @@ char USER_TOPIC_CLIENT[12]="";
 
 int session_id = 1;
 
-FILE *users_topic;
+FILE *users_topics;
 FILE *subs_groups_file;
 
 pthread_mutex_t scan_mutex;

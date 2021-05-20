@@ -26,35 +26,14 @@ int pub_msg(MQTTClient client, char * topic, char * payload){
 
 }
 
-int ver_usr(char * usr_cmp){
-    char user_in_file[4];
-    int flag = 1;
-
-    online_users_file = fopen("online-users.txt", "r");
-
-    flockfile(online_users_file);
-
-    while(fgets(user_in_file, 4, online_users_file))
-        if(!strcmp(user_in_file, usr_cmp))
-            flag = 0;
-
-    funlockfile(online_users_file);
-    fclose(online_users_file);
-
-    if(flag)
-        return 1;
-    else
-        return 0;
-}
-
 void req_conn(char * rec_user, char * topic_rec, char * topic_chat){
     sprintf(topic_chat, "%d_%.2s_%.2s_Chat", session_id, rec_user, USER_ID);
     sprintf(topic_rec, "%.2s_Client", rec_user);
-    MQTTClient_subscribe(client, topic_chat, QOS);
+    MQTTClient_subscribe(client_mqtt, topic_chat, QOS);
 
-    users_topic = fopen(users_topic, "a+");
+    users_topics = fopen("users_topics.txt", "a+");
 
-    fgets(topic_chat, sizeof(topic_chat), users_topic);
+    fgets(topic_chat, sizeof(topic_chat), users_topics);
 
     fclose(users_topic);
 }
@@ -63,6 +42,8 @@ void *handle_msg_arrvd(char * rec_user, char * topic, MQTTClient client){
 
     if(!strcmp(topic, USER_TOPIC_CONTROL)){
         printf("%.2s Inicou um chat com você\n", rec_user);
+            char topic_rec[], topic_chat[];
+            
 
             req_conn(rec_user, topic_rec, topic_chat);
             pub_msg(client, topic_rec, topic_chat);
