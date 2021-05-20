@@ -36,7 +36,7 @@ int sub_topic(char * topic){
 }
 
 
-void *handle_new_chat(char * rec_user, char * topic){
+void *handle_new_chat(char * rec_user){
     char topic_rec[30]="", topic_chat[30]="";
     int session_id = (rand() % 100000);
     
@@ -53,34 +53,32 @@ void *handle_new_chat(char * rec_user, char * topic){
     // printf("%s\n", topic_chat);
 
     pub_msg(topic_rec, topic_chat);
+    pub_msg(topic_chat, "iniciando");
 
     sub_topic(topic_chat);
 
+    // users_topics = fopen("users_topics.txt", "a+");
 
-    users_topics = fopen("users_topics.txt", "a+");
+    // fprintf(users_topics, "%s\n", topic_chat);
 
-    fprintf(users_topics, "%s\n", topic_chat);
-
-    fclose(users_topics);
-
-
+    // fclose(users_topics);
 }
 
 int msg_arrvd(void *context, char *topic_name, int topic_len, MQTTClient_message *message){
     int rc;
-    char user_id[4], payload[64]="";
-    strcat(payload, message->payload);
-
-    printf("\n%s\n", payload);
 
     if(!strcmp(topic_name, USER_TOPIC_CONTROL)){
-        strncpy(user_id, message->payload, 2);
-        printf("%.2s Inicou um chat com você\n", user_id);
-        handle_new_chat(payload, topic_name);
+        printf("%.2s Inicou um chat com você\n", (char *)message->payload);
+        handle_new_chat((char *)message->payload);
     }
     else if(!strcmp(topic_name, USER_TOPIC_CLIENT)){
-
-        sub_topic(payload);
+        printf("Olha o chat iniciando!\n");
+        sub_topic((char *)message->payload);
+    }
+    else{
+        printf("Olha a mensagem!\n");
+        printf("     topic: %s\n", topic_name);
+        printf("   message: %.*s\n", message->payloadlen, (char*)message->payload);
     }
 
     // printf("     topic: %s\n", topic_name);
