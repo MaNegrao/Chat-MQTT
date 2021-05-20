@@ -6,63 +6,87 @@ void menu(){
     printf("2. Enviar mensagem\n");
     printf("3. Entrar em um grupo \n");
     printf("4. Enviar mensagem em um grupo \n");
-	printf("4. Logout \n");
+	printf("5. Logout \n");
 }
 
-int pub_msg(MQTTClient client, char * topic, char * payload){
+int pub_msg(char * topic, char * payload){
     int rc;
 
     MQTTClient_message message = MQTTClient_message_initializer;
 
     message.payload = payload;
-    message.payloadlen = sizeof(payload);
+    message.payloadlen = (int)strlen(payload);
     message.qos = QOS;
 
-    if((rc = MQTTClient_publishMessage(client, topic, &message, NULL)) != MQTTCLIENT_SUCCESS){
+    if((rc = MQTTClient_publishMessage(client_mqtt, topic, &message, NULL)) != MQTTCLIENT_SUCCESS){
         printf("Failed to publish message, return code %d\n", rc);
-        MQTTClient_destroy(&client);
+        MQTTClient_destroy(client_mqtt);
         exit(0);
     }
 
 }
 
-void req_conn(char * rec_user, char * topic_rec, char * topic_chat){
-    sprintf(topic_chat, "%d_%.2s_%.2s_Chat", session_id, rec_user, USER_ID);
-    sprintf(topic_rec, "%.2s_Client", rec_user);
-    MQTTClient_subscribe(client_mqtt, topic_chat, QOS);
+int sub_topic(char * topic){
+    int rc;
+    if((rc = MQTTClient_subscribe(client_mqtt, topic, QOS)) != MQTTCLIENT_SUCCESS){
+        printf("Falha ao assinar o tópico, Erro: %d\n", rc);
+        MQTTClient_destroy(&client_mqtt);
+        exit(0);
+    }               
+}
+
+
+void *handle_new_chat(char * rec_user, char * topic){
+    char topic_rec[30]="", topic_chat[30]="";
+    int session_id = (rand() % 100000);
+    
+    strncat(topic_rec, rec_user, 2);
+    strcat(topic_rec, "_Client");
+
+    strncat(topic_chat, rec_user, 2);
+    strncat(topic_chat, USER_ID, 2);
+    strcat(topic_chat, "_Chat");
+
+    //sprintf(topic_chat, "%d_%.2s_%.2s_Chat", session_id, rec_user, USER_ID);
+
+    // printf("%s\n", topic_rec);
+    // printf("%s\n", topic_chat);
+
+    pub_msg(topic_rec, topic_chat);
+
+    sub_topic(topic_chat);
+
 
     users_topics = fopen("users_topics.txt", "a+");
 
-    fgets(topic_chat, sizeof(topic_chat), users_topics);
+    fprintf(users_topics, "%s\n", topic_chat);
 
-    fclose(users_topic);
-}
+    fclose(users_topics);
 
-void *handle_msg_arrvd(char * rec_user, char * topic, MQTTClient client){
-
-    if(!strcmp(topic, USER_TOPIC_CONTROL)){
-        printf("%.2s Inicou um chat com você\n", rec_user);
-            char topic_rec[], topic_chat[];
-            
-
-            req_conn(rec_user, topic_rec, topic_chat);
-            pub_msg(client, topic_rec, topic_chat);
-        }
-    }
-    else{
-        printf("%s\n", topic);
-    }
 
 }
 
 int msg_arrvd(void *context, char *topic_name, int topic_len, MQTTClient_message *message){
-    
-    handle_msg_arrvd(message->payload, topic_name, client_mqtt);
+    int rc;
+    char user_id[4], payload[64]="";
+    strcat(payload, message->payload);
+
+    printf("\n%s\n", payload);
+
+    if(!strcmp(topic_name, USER_TOPIC_CONTROL)){
+        strncpy(user_id, message->payload, 2);
+        printf("%.2s Inicou um chat com você\n", user_id);
+        handle_new_chat(payload, topic_name);
+    }
+    else if(!strcmp(topic_name, USER_TOPIC_CLIENT)){
+
+        sub_topic(payload);
+    }
 
     // printf("     topic: %s\n", topic_name);
     // printf("   message: %.*s\n", message->payloadlen, (char*)message->payload);
-    MQTTClient_freeMessage(&message);
-    MQTTClient_free(topic_name);
+    //MQTTClient_freeMessage(&message);
+    //MQTTClient_free(topic_name);
     return 1;
 }
 
@@ -70,8 +94,7 @@ void conn_lost(void *context, char *cause){
     printf("\nConexão perdida. Erro: %s\n", cause);
 }
 
-
-void ini_chat(MQTTClient m_client){
+void ini_chat(){
 
     char rec_id[4], rec_topic[12] = "";
 
@@ -84,7 +107,7 @@ void ini_chat(MQTTClient m_client){
     strcat(rec_topic, "_Control");
 
     printf("Requisitando inicio de sessão...\n");
-    pub_msg(m_client, rec_topic, USER_ID);
+    pub_msg(rec_topic, USER_ID);
 }
 
 // void sub_group(MQTTClient g_client){
@@ -131,7 +154,6 @@ void *main(){
     // conn_opts.keepAliveInterval = 20;
     // conn_opts.cleansession = 1;
 
-
     if((rc = MQTTClient_create(&client_mqtt, ADDRESS, USER_TOPIC_CONTROL, 
     MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS){
         printf("Falha na criação do tópico do cliente. Erro: %d\n", rc);
@@ -168,14 +190,12 @@ void *main(){
     do
     {
         //system("clear");
-        pthread_mutex_lock(&scan_mutex);
         menu();
-        scanf(" %d ", &sel);
-        pthread_mutex_unlock(&scan_mutex);
+        scanf("%d", &sel);
 
         switch (sel){
             case 1:
-                ini_chat(client_mqtt);
+                ini_chat();
                 break;
             
             case 2:
@@ -186,7 +206,9 @@ void *main(){
                 break;
 
             case 4:
-                logout();
+                break;
+
+            case 5:
                 MQTTClient_destroy(&client_mqtt);
                 break;
 
@@ -194,6 +216,6 @@ void *main(){
                 printf("Opção inválida!\n");
                 break;
         }
-    } while (sel != 4);  
+    } while (sel != 5);  
 }
 

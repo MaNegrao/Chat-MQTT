@@ -8,7 +8,7 @@
 #include <MQTTClient.h>
 
 #define ADDRESS     "tcp://localhost:1883" 
-#define QOS         2
+#define QOS         1
 #define TIMEOUT     10000L
 
 #define GP1_TOPIC_ID "Secret_Jedis"
@@ -21,14 +21,7 @@ char USER_ID[4];
 char USER_TOPIC_CONTROL[12]="";
 char USER_TOPIC_CLIENT[12]="";
 
-
-int session_id = 1;
-
 FILE *users_topics;
 FILE *subs_groups_file;
-
-pthread_mutex_t scan_mutex;
-pthread_t req_conn_thread;
-pthread_t handle_conn_thread;
 
 MQTTClient client_mqtt;
