@@ -23,6 +23,9 @@ char USER_TOPIC_CONTROL[20]="";
 char USER_TOPIC_CLIENT[20]="";
 
 char TOPICS_ONLINE[99][20];
+char GP_TOPICS_ONLINE[99][20];
+
+int group_control = 1;
 
 FILE *users_topics;
 FILE *subs_groups_file;

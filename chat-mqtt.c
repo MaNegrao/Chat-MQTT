@@ -148,7 +148,7 @@ void handle_new_chat(char * rec_user, MQTTAsync client){
 
     sprintf(TOPICS_ONLINE[atoi(rec_user)], "%s", topic_chat);
 
-    printf("%s\n", TOPICS_ONLINE[atoi(rec_user)]);
+    //printf("%s\n", TOPICS_ONLINE[atoi(rec_user)]);
 
 }
 
@@ -171,21 +171,49 @@ int msgarrvd(void *context, char *topic_name, int topic_len, MQTTAsync_message *
 
         sprintf(TOPICS_ONLINE[atoi(id_rec)], "%s", (char *)message->payload);
 
-        printf("%s\n", TOPICS_ONLINE[atoi(id_rec)]);     
+        //printf("%s\n", TOPICS_ONLINE[atoi(id_rec)]);     
     }
     else{
-        printf("Olha a mensagem!\n");
-        printf("   Topic: %s\n", topic_name);
-        printf("   message: %s\n", (char*)message->payload);
-    }
+        //printf("   Topic: %s\n", topic_name);
+        char * idus_rec = strtok((char *)message->payload, ";");
+        char * message_rec = strtok(NULL, ";");
 
-    // printf("     topic: %s\n", topic_name);
-    // printf("   message: %.*s\n", message->payloadlen, (char*)message->payload);
-    //MQTTAsync_freeMessage(&message);
-    //MQTTAsync_free(topic_name);
+        if(strcmp(idus_rec, USER_ID_ID)){
+            printf("\nOlha a mensagem!\n");
+            printf("User %s: %s\n", idus_rec, message_rec);
+            
+            sleep(4);
+            menu();
+        }
+    }
     return 1;
 }
 
+void send_msg_chat(MQTTAsync client){
+    int sel; 
+    char msg_topic[20]="", message[64], payload[90];
+
+    printf("Selecione um dos chats para mandar mensagem:\n");
+    for(int i = 0; i < 99; i++){
+        if(strlen(TOPICS_ONLINE[i]) > 5){
+            printf("%d - User %2d\n", i, i);
+        }
+    }
+
+    scanf("%d", &sel);
+    strcpy(msg_topic, TOPICS_ONLINE[sel]);
+
+    printf("Digite a mensagem que deseja enviar:\n");
+
+    __fpurge(stdin);
+    
+    fgets(message, sizeof(message), stdin);
+
+    sprintf(payload, "US;%s;%s", USER_ID_ID, message);
+
+    pub_msg(msg_topic, payload, client);
+
+}
 
 void ini_chat(MQTTAsync client){
 
@@ -203,28 +231,48 @@ void ini_chat(MQTTAsync client){
     pub_msg(rec_topic, USER_ID, client);
 }
 
-// void sub_group(MQTTAsync g_client){
-//     int sel, rc;
-//     char group_in_file[2];
+void send_msg_group(MQTTAsync client){
+    int sel; 
+    char msg_topic[20]="", message[64], payload[90];
 
-//     printf("Em qual dos grupos abaixo você deseja entrar?\n");
-//     printf("1 - Grupo dos Jedi's Ocultos\n");
-//     printf("2 - Grupo dos Fãs de Formula 1\n");
-//     printf("3 - Grupo dos jogadores de Overwatch\n");
-//     printf("4 - Grupo dos Assinantes de iRacing\n");
-//     printf("5 - Grupo dos Jedi's Ocultos\n");
+    printf("Selecione um dos chats para mandar mensagem:\n");
+    for(int i = 1; i < group_control; i++){
+        printf("%d - %s\n", i, GP_TOPICS_ONLINE[i]);
+    }
+
+    scanf("%d", &sel);
+    strcpy(msg_topic, GP_TOPICS_ONLINE[sel]);
+
+    printf("Digite a mensagem que deseja enviar:\n");
+
+    __fpurge(stdin);
     
-//     scanf("%d", &sel);
+    fgets(message, sizeof(message), stdin);
 
-//     if((rc = MQTTAsync_subscribe(g_client, sel, QOS)) != MQTTASYNC_SUCCESS)){
-//         printf("Falha ao assinar o tópico, Erro: %d\n", rc);
-//         MQTTAsync_destroy(&g_client);
-//         exit(0);
-//     }
-//     else{
-//         printf("Cadastrado com sucesso!\n");
-//     }
-// }
+    sprintf(payload, "GP;%s;%s", USER_ID_ID, message);
+
+    pub_msg(msg_topic, payload, client);
+}
+
+void sub_group(MQTTAsync client){
+    int rc;
+    char group[20], group_in_file[2];
+
+    printf("Em qual dos grupos abaixo você deseja entrar?\n");
+    
+    __fpurge(stdin);
+    fgets(group, sizeof(group), stdin);
+
+    char * topic = strtok(group, "\n");
+
+    strcat(topic, "_Group");
+
+    strcpy(GP_TOPICS_ONLINE[group_control], topic);
+
+    group_control++;
+
+    sub_topic(topic, client);
+}
 
 int main(){
     MQTTAsync client;
@@ -287,13 +335,15 @@ int main(){
                 break;
             
             case 2:
-                //sub_group(client);
+                send_msg_chat(client);
                 break;
 
             case 3:
+                sub_group(client);
                 break;
 
             case 4:
+                send_msg_group(client);
                 break;
 
             case 5:
