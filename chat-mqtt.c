@@ -415,6 +415,15 @@ int main(){
                 break;
 
             case 5:
+                disc_opts.onSuccess = onDisconnect;
+                disc_opts.onFailure = onDisconnectFailure;
+                if ((rc = MQTTAsync_disconnect(client, &disc_opts)) != MQTTASYNC_SUCCESS)
+                {
+                    printf("Failed to start disconnect, return code %d\n", rc);
+                    rc = EXIT_FAILURE;
+                    goto destroy_exit;
+                }
+
                 break;
 
             default:
@@ -422,15 +431,6 @@ int main(){
                 break;
         }
     } while ((sel != 5) || disc_finished || finished);  
-
-    disc_opts.onSuccess = onDisconnect;
-	disc_opts.onFailure = onDisconnectFailure;
-	if ((rc = MQTTAsync_disconnect(client, &disc_opts)) != MQTTASYNC_SUCCESS)
-	{
-		printf("Failed to start disconnect, return code %d\n", rc);
-		rc = EXIT_FAILURE;
-		goto destroy_exit;
-	}
 
 destroy_exit:
 	MQTTAsync_destroy(&client);
