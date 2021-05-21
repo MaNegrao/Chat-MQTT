@@ -291,7 +291,7 @@ void sub_group(MQTTAsync client){
     int rc;
     char group[20], group_in_file[2], topic[30]="";
 
-    printf("Em qual dos grupos abaixo você deseja entrar?\n");
+    printf("Qual o nome do grupo que você deseja entrar?\n");
     
     __fpurge(stdin);
     fgets(group, sizeof(group), stdin);
