@@ -30,14 +30,15 @@ sudo make install
 
 
 ```
-gcc chat-mqtt.c -o chat -lpaho-mqtt3as
+gcc chat-mqtt.c -o chat -lpaho-mqtt3as -lpthread
 
 ./chat
 ```
 
 ## Utilização:
 
-- Assim que executado, para usar o aplicativo, o usuario deve inserir o seu id único (01 - 99). e Após a conexão, as funções do menu podem ser utilizadas.
+- Assim que executado, para usar o aplicativo, o usuario deve inserir o seu id único (01 - 99). e Após a conexão, as funções do menu podem ser utilizadas escrevendo no terminal.
+A todo momento, independente da chegada de mesnagens, os comandos dados no terminal serão direcionados a seleção do menu.
 
 ```
 Digite seu ID único:
