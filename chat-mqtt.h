@@ -30,4 +30,4 @@ int group_control = 1;
 FILE *users_topics;
 FILE *subs_groups_file;
 
-int subscribed = 0, finished = 0, disc_finished = 0;
+int disc_finished = 0, finished = 0;
