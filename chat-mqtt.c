@@ -3,8 +3,8 @@
 void menu(){
     printf("-- Escolha uma oção --\n");
     printf("1. Iniciar um chat com um usuario\n");
-    printf("2. Enviar mensagem\n");
-    printf("3. Entrar em um grupo \n");
+    printf("2. Enviar mensagem em um chat\n");
+    printf("3. Entrar em um grupo\n");
     printf("4. Enviar mensagem em um grupo \n");
 	printf("5. Logout \n");
 }
@@ -223,15 +223,21 @@ int msgarrvd(void *context, char *topic_name, int topic_len, MQTTAsync_message *
 }
 
 void send_msg_chat(MQTTAsync client){
-    int sel; 
+    int sel, vrf = 0; 
     char msg_topic[20]="", message[64], payload[90];
 
-    printf("Selecione um dos chats para mandar mensagem:\n");
     for(int i = 0; i < 99; i++){
         if(strlen(TOPICS_ONLINE[i]) > 5){
             printf("%d - User %2d\n", i, i);
+            vrf++;
         }
     }
+
+    if(!vrf){
+        printf("Você não tem nenhuma sessão de chat aberta\n");
+        return;
+    }
+    printf("Selecione um dos chats acima para mandar mensagem:\n");
 
     scanf("%d", &sel);
     strcpy(msg_topic, TOPICS_ONLINE[sel]);
@@ -268,10 +274,17 @@ void send_msg_group(MQTTAsync client){
     int sel; 
     char msg_topic[20]="", message[64], payload[120];
 
-    printf("Selecione um dos chats para mandar mensagem:\n");
     for(int i = 1; i < group_control; i++){
         printf("%d - %s\n", i, GP_TOPICS_ONLINE[i]);
     }
+
+    if(group_control == 1){
+        printf("Você não está cadastrado em nenhum grupo!\n");
+        return;
+    }
+
+    printf("Selecione um dos chats acima para mandar mensagem:\n");
+
 
     scanf("%d", &sel);
     strcpy(msg_topic, GP_TOPICS_ONLINE[sel]);
