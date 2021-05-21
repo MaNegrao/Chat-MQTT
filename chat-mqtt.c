@@ -46,7 +46,7 @@ void onSendFailure(void* context, MQTTAsync_failureData* response)
 	MQTTAsync_disconnectOptions opts = MQTTAsync_disconnectOptions_initializer;
 	int rc;
 
-	printf("Message send failed token %d error code %d\n", response->token, response->code);
+	//printf("Message send failed token %d error code %d\n", response->token, response->code);
 	opts.onSuccess = onDisconnect;
 	opts.onFailure = onDisconnectFailure;
 	opts.context = client;
