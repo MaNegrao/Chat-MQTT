@@ -157,9 +157,13 @@ void handle_new_chat(char * rec_user, MQTTAsync client){
     //printf("%s\n", topic_rec);
     //printf("%s\n", topic_chat);
 
+    pthread_mutex_lock(&sub_topic_mutex);
     sub_topic(topic_chat, client);
-
+    pthread_mutex_unlock(&sub_topic_mutex);
+    
+    pthread_mutex_lock(&pub_msg_mutex);
     pub_msg(topic_rec, topic_chat, client);
+    pthread_mutex_unlock(&pub_msg_mutex);
 
     sprintf(TOPICS_ONLINE[atoi(rec_user)], "%s", topic_chat);
 
@@ -182,7 +186,10 @@ int msgarrvd(void *context, char *topic_name, int topic_len, MQTTAsync_message *
         fflush(stdout);
         
         sprintf(id_rec, "%.2s", (char *)message->payload);
+
+        pthread_mutex_lock(&sub_topic_mutex);
         sub_topic((char *)message->payload, client);
+        pthread_mutex_unlock(&sub_topic_mutex);
 
         sprintf(TOPICS_ONLINE[atoi(id_rec)], "%s", (char *)message->payload);
 
@@ -250,24 +257,10 @@ void send_msg_chat(MQTTAsync client){
 
     sprintf(payload, "US;%s;%s;", USER_ID_ID, message);
 
+    pthread_mutex_lock(&pub_msg_mutex);
     pub_msg(msg_topic, payload, client);
+    pthread_mutex_unlock(&pub_msg_mutex);
 
-}
-
-void ini_chat(MQTTAsync client){
-
-    char rec_id[10], rec_topic[20] = "";
-
-    printf("Qual ID do usuario que você deseja mandar mensagem?\n");
-    
-    __fpurge(stdin);
-    fgets(rec_id, sizeof(rec_id), stdin);
-
-    strncat(rec_topic, rec_id, 2);
-    strcat(rec_topic, "_Control");
-
-    printf("Requisitando inicio de sessão...\n");
-    pub_msg(rec_topic, USER_ID, client);
 }
 
 void send_msg_group(MQTTAsync client){
@@ -297,7 +290,10 @@ void send_msg_group(MQTTAsync client){
 
     sprintf(payload, "GP;%s;%s;%s;", USER_ID_ID, msg_topic, message);
 
+    pthread_mutex_lock(&pub_msg_mutex);
     pub_msg(msg_topic, payload, client);
+    pthread_mutex_unlock(&pub_msg_mutex);
+
 }
 
 void sub_group(MQTTAsync client){
@@ -321,7 +317,29 @@ void sub_group(MQTTAsync client){
 
     group_control++;
 
+    pthread_mutex_lock(&sub_topic_mutex);
     sub_topic(topic, client);
+    pthread_mutex_lock(&sub_topic_mutex);
+}
+
+
+void ini_chat(MQTTAsync client){
+
+    char rec_id[10], rec_topic[20] = "";
+
+    printf("Qual ID do usuario que você deseja mandar mensagem?\n");
+    
+    __fpurge(stdin);
+    fgets(rec_id, sizeof(rec_id), stdin);
+
+    strncat(rec_topic, rec_id, 2);
+    strcat(rec_topic, "_Control");
+
+    printf("Requisitando inicio de sessão...\n");
+    
+    pthread_mutex_lock(&pub_msg_mutex);
+    pub_msg(rec_topic, USER_ID, client);
+    pthread_mutex_unlock(&pub_msg_mutex);
 }
 
 int main(){

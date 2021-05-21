@@ -26,8 +26,10 @@ char TOPICS_ONLINE[99][20];
 char GP_TOPICS_ONLINE[99][20];
 
 int group_control = 1;
+int disc_finished = 0, finished = 0;
 
 FILE *users_topics;
 FILE *subs_groups_file;
 
-int disc_finished = 0, finished = 0;
+pthread_mutex_t pub_msg_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t sub_topic_mutex = PTHREAD_MUTEX_INITIALIZER;
