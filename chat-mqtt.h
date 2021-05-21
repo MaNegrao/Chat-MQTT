@@ -17,6 +17,7 @@ char USER_TOPIC_CONTROL[30]="";
 char USER_TOPIC_CLIENT[30]="";
 
 char TOPICS_ONLINE[100][30];
+char TOPICS_PENDENTS[100][30];
 char GP_TOPICS_ONLINE[99][30];
 
 int group_control = 1;
@@ -27,3 +28,4 @@ FILE *subs_groups_file;
 
 pthread_mutex_t pub_msg_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t sub_topic_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t topics_online_mutex = PTHREAD_MUTEX_INITIALIZER;
