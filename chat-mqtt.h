@@ -5,10 +5,10 @@
 #include <stdio_ext.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <MQTTClient.h>
+#include "MQTTAsync.h"
 
 #define ADDRESS     "tcp://localhost:1883" 
-#define QOS         2
+#define QOS         1
 #define TIMEOUT     10000L
 
 #define GP1_TOPIC_ID "Secret_Jedis"
@@ -22,11 +22,9 @@ char USER_ID_ID[3];
 char USER_TOPIC_CONTROL[20]="";
 char USER_TOPIC_CLIENT[20]="";
 
-int session_id = 0;
+char TOPICS_ONLINE[99][20];
 
 FILE *users_topics;
 FILE *subs_groups_file;
 
-MQTTClient client_mqtt;
-
-pthread_t thread_new_sub;
+int subscribed = 0, finished = 0, disc_finished = 0;
