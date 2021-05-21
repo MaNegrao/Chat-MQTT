@@ -9,92 +9,187 @@ void menu(){
 	printf("5. Logout \n");
 }
 
-int pub_msg(char * topic, char * payload){
+void connlost(void *context, char *cause){
+    printf("\nConexão perdida. Erro: %s\n", cause);
+}
+
+void onDisconnectFailure(void* context, MQTTAsync_failureData* response) {
+	printf("Disconnect failed, rc %d\n", response->code);
+	disc_finished = 1;
+}
+
+void onDisconnect(void* context, MQTTAsync_successData* response) {
+	printf("Desconexão bem sucedida!\n");
+	disc_finished = 1;
+}
+
+void onSendFailure(void* context, MQTTAsync_failureData* response)
+{
+	MQTTAsync client = (MQTTAsync)context;
+	MQTTAsync_disconnectOptions opts = MQTTAsync_disconnectOptions_initializer;
+	int rc;
+
+	printf("Message send failed token %d error code %d\n", response->token, response->code);
+	opts.onSuccess = onDisconnect;
+	opts.onFailure = onDisconnectFailure;
+	opts.context = client;
+	// if ((rc = MQTTAsync_disconnect(client, &opts)) != MQTTASYNC_SUCCESS)
+	// {
+	// 	printf("Failed to start disconnect, return code %d\n", rc);
+	// 	exit(EXIT_FAILURE);
+	// }
+}
+
+void onSend(void* context, MQTTAsync_successData* response)
+{
+	MQTTAsync client = (MQTTAsync)context;
+	MQTTAsync_disconnectOptions opts = MQTTAsync_disconnectOptions_initializer;
+	int rc;
+
+	//printf("Message with token value %d delivery confirmed\n", response->token);
+	opts.onSuccess = onDisconnect;
+	opts.onFailure = onDisconnectFailure;
+	opts.context = client;
+	// if ((rc = MQTTAsync_disconnect(client, &opts)) != MQTTASYNC_SUCCESS)
+	// {
+	// 	printf("Failed to start disconnect, return code %d\n", rc);
+	// 	exit(EXIT_FAILURE);
+	// }
+}
+
+void onSubscribe(void* context, MQTTAsync_successData* response) {
+	printf("Assinatura Concluida!\n");
+	subscribed = 1;
+}
+
+void onSubscribeFailure(void* context, MQTTAsync_failureData* response) {
+	printf("Falha na assinatura. Erro: %d\n", response->code);
+	finished = 1;
+}
+
+void onConnect(void* context, MQTTAsync_successData* response) {
+	MQTTAsync client = (MQTTAsync)context;
+	MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
+	int rc;
+
+	printf("Conexão bem sucedida!\n");
+    
+    opts.onSuccess = onSubscribe;
+    opts.onFailure = onSubscribeFailure;
+    opts.context = client;
+
+	if ((rc = MQTTAsync_subscribe(client, USER_TOPIC_CONTROL, QOS, &opts)) != MQTTASYNC_SUCCESS) {
+		printf("Falha ao iniciar a assinatura no tópico de controle. Erro: %d\n", rc);
+		finished = 1;
+	}
+
+    if ((rc = MQTTAsync_subscribe(client, USER_TOPIC_CLIENT, QOS, &opts)) != MQTTASYNC_SUCCESS) {
+		printf("Falha ao iniciar a assinatura no tópico de cliente. Erro: %d\n", rc);
+		finished = 1;
+	}
+}
+
+void onConnectFailure(void* context, MQTTAsync_failureData* response) {
+	printf("Falha na conexão. Erro: %d\n", response->code);
+	finished = 1;
+}
+
+void pub_msg(char * topic, char * payload, MQTTAsync client){
     int rc;
 
-    MQTTClient_message message = MQTTClient_message_initializer;
+    MQTTAsync_message message = MQTTAsync_message_initializer;
+    MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
+
+    opts.onSuccess = onSend;
+    opts.onFailure = onSendFailure;
+    opts.context = client;
 
     message.payload = payload;
     message.payloadlen = (int)strlen(payload);
     message.qos = QOS;
 
-    if((rc = MQTTClient_publishMessage(client_mqtt, topic, &message, NULL)) != MQTTCLIENT_SUCCESS){
-        printf("Failed to publish message, return code %d\n", rc);
-        MQTTClient_destroy(client_mqtt);
+    if((rc = MQTTAsync_sendMessage(client, topic, &message, &opts)) != MQTTASYNC_SUCCESS){
+        printf("Falha ao publicar a mesangem. Erro: %d\n", rc);
+        MQTTAsync_destroy(client);
         exit(0);
     }
 
 }
 
-int sub_topic(char * topic){
+void sub_topic(char * topic_sub, MQTTAsync client){
     int rc;
-    if((rc = MQTTClient_subscribe(client_mqtt, topic, QOS)) != MQTTCLIENT_SUCCESS){
+
+    MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
+
+	opts.onSuccess = onSubscribe;
+	opts.onFailure = onSubscribeFailure;
+	opts.context = client;
+
+    if((rc = MQTTAsync_subscribe(client, topic_sub, QOS, &opts)) != MQTTASYNC_SUCCESS){
         printf("Falha ao assinar o tópico, Erro: %d\n", rc);
-        MQTTClient_destroy(&client_mqtt);
+        MQTTAsync_destroy(&client);
         exit(0);
     }               
 }
 
-
-void *handle_new_chat(char * rec_user){
-    char topic_rec[30]="", topic_chat[30]="";
-    int session_id = (rand() % 100000);
+void handle_new_chat(char * rec_user, MQTTAsync client){
+    char topic_rec[20]="", topic_chat[30]="";
+    int session_id = rand() % 1000;
     
-    strncat(topic_rec, rec_user, 2);
-    strcat(topic_rec, "_Client");
+    sprintf(topic_rec, "%.2s_Client", rec_user);
+    sprintf(topic_chat, "%.2s_%.2s_Chat_%d", USER_ID, rec_user, session_id);
 
-    strncat(topic_chat, rec_user, 2);
-    strncat(topic_chat, USER_ID, 2);
-    strcat(topic_chat, "_Chat");
+    //printf("%s\n", topic_rec);
+    //printf("%s\n", topic_chat);
 
-    //sprintf(topic_chat, "%d_%.2s_%.2s_Chat", session_id, rec_user, USER_ID);
+    sub_topic(topic_chat, client);
 
-    // printf("%s\n", topic_rec);
-    // printf("%s\n", topic_chat);
+    pub_msg(topic_rec, topic_chat, client);
 
-    pub_msg(topic_rec, topic_chat);
-    pub_msg(topic_chat, "iniciando");
+    sprintf(TOPICS_ONLINE[atoi(rec_user)], "%s", topic_chat);
 
-    sub_topic(topic_chat);
+    printf("%s\n", TOPICS_ONLINE[atoi(rec_user)]);
 
-    // users_topics = fopen("users_topics.txt", "a+");
-
-    // fprintf(users_topics, "%s\n", topic_chat);
-
-    // fclose(users_topics);
 }
 
-int msg_arrvd(void *context, char *topic_name, int topic_len, MQTTClient_message *message){
+int msgarrvd(void *context, char *topic_name, int topic_len, MQTTAsync_message *message){
     int rc;
+    char user_id[5], id_rec[3];
+    MQTTAsync client = (MQTTAsync)context;
 
     if(!strcmp(topic_name, USER_TOPIC_CONTROL)){
+        strncpy(user_id, (char *)message->payload, 2);
         printf("%.2s Inicou um chat com você\n", (char *)message->payload);
-        handle_new_chat((char *)message->payload);
+        handle_new_chat(user_id, client);
     }
     else if(!strcmp(topic_name, USER_TOPIC_CLIENT)){
         printf("Olha o chat iniciando!\n");
-        sub_topic((char *)message->payload);
+        fflush(stdout);
+        
+        sprintf(id_rec, "%.2s", (char *)message->payload);
+        sub_topic((char *)message->payload, client);
+
+        sprintf(TOPICS_ONLINE[atoi(id_rec)], "%s", (char *)message->payload);
+
+        printf("%s\n", TOPICS_ONLINE[atoi(id_rec)]);     
     }
     else{
         printf("Olha a mensagem!\n");
-        printf("     topic: %s\n", topic_name);
-        printf("   message: %.*s\n", message->payloadlen, (char*)message->payload);
+        printf("   Topic: %s\n", topic_name);
+        printf("   message: %s\n", (char*)message->payload);
     }
 
     // printf("     topic: %s\n", topic_name);
     // printf("   message: %.*s\n", message->payloadlen, (char*)message->payload);
-    //MQTTClient_freeMessage(&message);
-    //MQTTClient_free(topic_name);
+    //MQTTAsync_freeMessage(&message);
+    //MQTTAsync_free(topic_name);
     return 1;
 }
 
-void conn_lost(void *context, char *cause){
-    printf("\nConexão perdida. Erro: %s\n", cause);
-}
 
-void ini_chat(){
+void ini_chat(MQTTAsync client){
 
-    char rec_id[4], rec_topic[12] = "";
+    char rec_id[10], rec_topic[20] = "";
 
     printf("Qual ID do usuario que você deseja mandar mensagem?\n");
     
@@ -105,10 +200,10 @@ void ini_chat(){
     strcat(rec_topic, "_Control");
 
     printf("Requisitando inicio de sessão...\n");
-    pub_msg(rec_topic, USER_ID);
+    pub_msg(rec_topic, USER_ID, client);
 }
 
-// void sub_group(MQTTClient g_client){
+// void sub_group(MQTTAsync g_client){
 //     int sel, rc;
 //     char group_in_file[2];
 
@@ -121,9 +216,9 @@ void ini_chat(){
     
 //     scanf("%d", &sel);
 
-//     if((rc = MQTTClient_subscribe(g_client, sel, QOS)) != MQTTCLIENT_SUCCESS)){
+//     if((rc = MQTTAsync_subscribe(g_client, sel, QOS)) != MQTTASYNC_SUCCESS)){
 //         printf("Falha ao assinar o tópico, Erro: %d\n", rc);
-//         MQTTClient_destroy(&g_client);
+//         MQTTAsync_destroy(&g_client);
 //         exit(0);
 //     }
 //     else{
@@ -131,9 +226,10 @@ void ini_chat(){
 //     }
 // }
 
-void *main(){
-
-    char user_in_file[4];
+int main(){
+    MQTTAsync client;
+    MQTTAsync_connectOptions conn_opts = MQTTAsync_connectOptions_initializer;
+    MQTTAsync_disconnectOptions disc_opts = MQTTAsync_disconnectOptions_initializer;
     int sel, rc;    
 
     printf("Digite seu ID único:\n");
@@ -141,46 +237,40 @@ void *main(){
     __fpurge(stdin);
     fgets(USER_ID, sizeof(USER_ID), stdin);
 
+    strncat(USER_ID_ID, USER_ID, 2);
+
     strncat(USER_TOPIC_CONTROL, USER_ID, 2);
     strcat(USER_TOPIC_CONTROL, "_Control");
 
     strncat(USER_TOPIC_CLIENT, USER_ID, 2);
     strcat(USER_TOPIC_CLIENT, "_Client");
 
-    MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+    if ((rc = MQTTAsync_create(&client, ADDRESS, USER_ID_ID, MQTTCLIENT_PERSISTENCE_NONE, NULL))
+			!= MQTTASYNC_SUCCESS)
+	{
+		printf("Failed to create client, return code %d\n", rc);
+		rc = EXIT_FAILURE;
+		goto exit;
+	}
 
-    // conn_opts.keepAliveInterval = 20;
-    // conn_opts.cleansession = 1;
+	if ((rc = MQTTAsync_setCallbacks(client, client, connlost, msgarrvd, NULL)) != MQTTASYNC_SUCCESS)
+	{
+		printf("Failed to set callbacks, return code %d\n", rc);
+		rc = EXIT_FAILURE;
+		goto destroy_exit;
+	}
 
-    if((rc = MQTTClient_create(&client_mqtt, ADDRESS, USER_TOPIC_CONTROL, 
-    MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS){
-        printf("Falha na criação do tópico do cliente. Erro: %d\n", rc);
-        exit(0);
-    }
-    
-    if((rc = MQTTClient_setCallbacks(client_mqtt, NULL, conn_lost, msg_arrvd, NULL)) != MQTTCLIENT_SUCCESS){
-        printf("Erro ao setar os callbacks. Erro: %d\n", rc);
-        MQTTClient_destroy(&client_mqtt);
-        exit(0);
-    }
-
-    if((rc = MQTTClient_connect(client_mqtt, &conn_opts)) != MQTTCLIENT_SUCCESS){
-        printf("Conexão com o broker falhou. Erro: %d\n", rc);
-        MQTTClient_destroy(&client_mqtt);
-        exit(0);
-    }
-
-    if((rc = MQTTClient_subscribe(client_mqtt, USER_TOPIC_CONTROL, QOS)) != MQTTCLIENT_SUCCESS){
-    	printf("Falha ao assinar o tópico, Erro: %d\n", rc);
-        MQTTClient_destroy(&client_mqtt);
-        exit(0);
-    }
-
-    if((rc = MQTTClient_subscribe(client_mqtt, USER_TOPIC_CLIENT, QOS)) != MQTTCLIENT_SUCCESS){
-    	printf("Falha ao assinar o tópico, Erro: %d\n", rc);
-        MQTTClient_destroy(&client_mqtt);
-        exit(0);
-    }
+	conn_opts.keepAliveInterval = 20;
+	conn_opts.cleansession = 1;
+	conn_opts.onSuccess = onConnect;
+	conn_opts.onFailure = onConnectFailure;
+	conn_opts.context = client;
+	if ((rc = MQTTAsync_connect(client, &conn_opts)) != MQTTASYNC_SUCCESS)
+	{
+		printf("Failed to start connect, return code %d\n", rc);
+		rc = EXIT_FAILURE;
+		goto destroy_exit;
+	}
 
     //system("clear");
     printf("Bem-vindo! Agora você está online!\n\n");
@@ -193,11 +283,11 @@ void *main(){
 
         switch (sel){
             case 1:
-                ini_chat();
+                ini_chat(client);
                 break;
             
             case 2:
-                //sub_group(client_mqtt);
+                //sub_group(client);
                 break;
 
             case 3:
@@ -207,7 +297,13 @@ void *main(){
                 break;
 
             case 5:
-                MQTTClient_destroy(&client_mqtt);
+                disc_opts.onSuccess = onDisconnect;
+                disc_opts.onFailure = onDisconnectFailure;
+                if ((rc = MQTTAsync_disconnect(client, &disc_opts)) != MQTTASYNC_SUCCESS) {
+                    printf("Failed to start disconnect, return code %d\n", rc);
+                    rc = EXIT_FAILURE;
+                    MQTTAsync_destroy(&client);
+                }
                 break;
 
             default:
@@ -215,5 +311,11 @@ void *main(){
                 break;
         }
     } while (sel != 5);  
+
+
+destroy_exit:
+	MQTTAsync_destroy(&client);
+exit:
+ 	return rc;
 }
 
