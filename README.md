@@ -2,7 +2,7 @@
 
 ## Download e instalação: 
 
-- Para utilizar a aplicação é necessario ter instalado o broker mosquitto e a biblioteca paho-MQTT. Abaixo as instruções de utilização no Ubuntu 20.04.
+- Para utilizar a aplicação é necessário ter instalado o broker mosquitto e a biblioteca paho-MQTT. Abaixo são demonstradas as instruções de utilização no Ubuntu 20.04.
 
 ### Mosquitto
 
@@ -26,7 +26,7 @@ sudo make install
 
 ## Execução:
 
-- Para execução da aplicação deve se compilar o arquivo utilizando a biblioteca do paho mqtt e posteriormente executá-lo, como demonstrado abaixo;
+- Para execução da aplicação deve se compilar o arquivo utilizando a biblioteca do paho mqtt e posteriormente executá-lo, como demonstrado abaixo:
 
 
 ```
@@ -37,18 +37,19 @@ gcc chat-mqtt.c -o chat -lpaho-mqtt3as -lpthread
 
 ## Utilização:
 
-- Assim que executado, para usar o aplicativo, o usuario deve inserir o seu id único (01 - 99). e Após a conexão, as funções do menu podem ser utilizadas escrevendo no terminal.
-A todo momento, independente da chegada de mesnagens, os comandos dados no terminal serão direcionados a seleção do menu.
+- Assim que executado, para usar o aplicativo, o usuário deve inserir o seu id único (01 - 99) com dois dígitos. Após a conexão, as funções do menu podem ser utilizadas escrevendo no terminal. A todo momento, independente da chegada de mensagens, os comandos dados no terminal serão direcionados à seleção do menu.
 
 ```
 Digite seu ID único:
-03
+02
 Bem-vindo! Agora você está online!
-
--- Escolha uma oção --
-1. Iniciar um chat com um usuario
-2. Enviar mensagem
-3. Entrar em um grupo 
-4. Enviar mensagem em um grupo 
-5. Logout 
+ 
+-- Escolha uma opção --
+1. Iniciar um chat com um usuário
+2. Aceitar uma solicitação de chat
+3. Enviar mensagem em um chat
+4. Entrar em um grupo
+5. Enviar mensagem em um grupo
+6. Desconectar do broker
+0. Encerrar a aplicação
 ```

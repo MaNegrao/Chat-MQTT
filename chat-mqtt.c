@@ -2,12 +2,12 @@
 
 void menu(){
     printf("-- Escolha uma opção --\n");
-    printf("1. Iniciar um chat com um usuario\n");
+    printf("1. Iniciar um chat com um usuário\n");
     printf("2. Aceitar uma solicitação de chat\n");    
     printf("3. Enviar mensagem em um chat\n");
     printf("4. Entrar em um grupo\n");
     printf("5. Enviar mensagem em um grupo \n");
-	printf("6. Desconetar do broker \n");
+	printf("6. Desconectar do broker \n");
     printf("0. Encerrar a aplicação\n");
 }
 
