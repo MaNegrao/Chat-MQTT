@@ -19,11 +19,11 @@
 
 char USER_ID[5];
 char USER_ID_ID[3];
-char USER_TOPIC_CONTROL[20]="";
-char USER_TOPIC_CLIENT[20]="";
+char USER_TOPIC_CONTROL[30]="";
+char USER_TOPIC_CLIENT[30]="";
 
-char TOPICS_ONLINE[99][20];
-char GP_TOPICS_ONLINE[99][20];
+char TOPICS_ONLINE[100][30];
+char GP_TOPICS_ONLINE[99][30];
 
 int group_control = 1;
 int disc_finished = 0, finished = 0;
